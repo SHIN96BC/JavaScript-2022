@@ -157,6 +157,7 @@ router();
 // 6) 디자인 입히기
 const store = {
   currentPage: 1,
+  feeds: [],
 };
 
 function getData(url) {
@@ -167,8 +168,16 @@ function getData(url) {
   //JSON.parse를 이용해서 js에서 다루기 쉬운 데이터 형식으로 바꿔준다. ( json 형식으로 불러왔을때 가능 )
 }
 
+function makeFeeds(feeds){
+  for(let i = 0; i < feeds.length; i++){
+    feeds[i].read = false;
+  }
+
+  return feeds;
+}
+
 function newsFeed() {
-  const newsFeed = getData(NEWS_URL);
+  let newsFeed = store.feeds;
   const newsList = [];
   let template = `
     <div class="bg-gray-600 min-h-screen">
@@ -195,6 +204,9 @@ function newsFeed() {
     </div>
   `;
 
+  if(newsFeed.length === 0){
+    newsFeed = store.feeds = makeFeeds(getData(NEWS_URL));   // 대입연산자를 연속해서 쓰면 맨 오른쪽의 데이터를 왼쪽에 넣고 그 왼쪽 데이터를 다시 자신의 왼쪽에 넣는다는 의미이다.
+  }
   
   for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
     newsList.push(`
@@ -258,8 +270,36 @@ function newsDetail() {
     </div>
   `;
 
-  //template = template.replace
-  container.innerHTML = template;
+  for(let i = 0; i < store.feeds.length; i++){
+    if(store.feeds[i].id === Number(id)){
+      store.feeds[i].read = true;
+      break;
+    }
+  }
+
+  function makeComment(comments, called = 0){
+    const commentString = [];
+    
+    for(let i = 0; i < comments.length; i++){
+      commentString.push(`
+        <div style="padding-left: ${called * 40}px;" class="mt-4">
+          <div class="text-gray-400">
+            <i class="fa fa-sort-up mr-2"></i>
+            <strong>${comments[i].user}</strong> ${comments[i].time_ago}
+          </div>
+          <p class="text-gray-700">${comments[i].content}</p>
+        </div>
+      `);
+      
+      if(comments[i].comments.length > 0){
+        commentString.push(makeComment(comments[i].comments, called + 1));
+      }
+    }
+
+    return commentString.join('');
+  }
+
+  container.innerHTML = template.replace('{{__comments__}}', makeComment(newsContent.comments));
 }
 
 // 화면전환을 위해 이벤트 핸들러에 라우터라는 함수를 만들어서 라우터함수에 이벤트를 걸어준다.
